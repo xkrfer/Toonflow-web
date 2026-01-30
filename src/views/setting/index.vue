@@ -115,7 +115,7 @@
 
           <!-- 其他模型配置表单 -->
           <div v-else class="modelForm">
-            <div class="formItem">
+            <div class="formItem" v-if="key !== 'imageModel' || !['apimart', 'runninghub'].includes(settingData[key].manufacturer)">
               <label class="formLabel">模型名称</label>
               <a-input v-model:value="settingData[key].model" :placeholder="`请输入${modelRecordName[key]}名称`" class="formInput" />
             </div>
@@ -129,10 +129,10 @@
             </div>
             <div class="formItem" v-if="key !== 'imageModel' || settingData[key].manufacturer === 'openAi'">
               <label class="formLabel">BaseURL</label>
-              <a-input 
-                v-model:value="settingData[key].baseURL" 
-                :placeholder="`请输入${modelRecordName[key]}的BaseURL`" 
-                class="formInput" 
+              <a-input
+                v-model:value="settingData[key].baseURL"
+                :placeholder="`请输入${modelRecordName[key]}的BaseURL`"
+                class="formInput"
                 :class="{ 'input-error': key === 'languageModel' && baseURLError }"
                 @input="key === 'languageModel' && validateBaseURL()" />
               <span class="formError" v-if="key === 'languageModel' && baseURLError">{{ baseURLError }}</span>
@@ -148,6 +148,14 @@
                 <i-check-one v-if="!testingAI" theme="outline" size="14" fill="currentColor" />
                 检查AI是否可用
               </a-button>
+            </div>
+            <!-- 图像模型测试按钮 -->
+            <div class="formItem" v-if="key === 'imageModel'">
+              <a-button type="primary" :loading="testingImage" @click="testImageModel" class="testBtn">
+                <i-check-one v-if="!testingImage" theme="outline" size="14" fill="currentColor" />
+                {{ testingImage ? '正在生成测试图片...' : '检查图像生成是否可用' }}
+              </a-button>
+              <span class="formHint">提示：测试将生成一张“2D猫”图片，可能需要 30秒~2分钟，请耐心等待</span>
             </div>
           </div>
         </div>
@@ -297,6 +305,23 @@
   <a-modal title="执行SQL" v-model:open="sqlShow" @ok="doExecSQL" centered>
     <a-textarea v-model:value="sqlString" placeholder="请输入SQL语句" :autosize="{ minRows: 2, maxRows: 12 }" />
   </a-modal>
+
+  <!-- 图像测试结果预览弹窗 -->
+  <a-modal 
+    title="图像生成测试成功" 
+    v-model:open="testImageModalVisible" 
+    :footer="null"
+    centered
+    width="auto"
+    class="test-image-modal">
+    <div class="test-image-content">
+      <p class="test-image-tip">✅ 图像模型配置正确，以下是生成的测试图片：</p>
+      <a-image 
+        :src="testImageResult" 
+        :preview="{ src: testImageResult }"
+        class="test-image-preview" />
+    </div>
+  </a-modal>
 </template>
 
 <script setup lang="ts">
@@ -314,7 +339,10 @@ const sqlShow = ref(false);
 const sqlString = ref("");
 const promptEditorShow = ref(false);
 const testingAI = ref(false);
+const testingImage = ref(false);
 const baseURLError = ref("");
+const testImageResult = ref<string>(""); // 测试生成的图片 base64
+const testImageModalVisible = ref(false); // 图片预览弹窗
 
 async function doExecSQL() {
   try {
@@ -394,7 +422,7 @@ function validateBaseURL() {
     baseURLError.value = "";
     return true;
   }
-  
+
   // 检查是否包含 /v1/ 后面还有其他路径
   const v1Index = url.indexOf("/v1/");
   if (v1Index !== -1) {
@@ -404,7 +432,7 @@ function validateBaseURL() {
       return false;
     }
   }
-  
+
   baseURLError.value = "";
   return true;
 }
@@ -434,6 +462,42 @@ async function testLanguageModel() {
     message.error(`连接失败: ${e.message}`);
   } finally {
     testingAI.value = false;
+  }
+}
+
+// 测试图像模型连接
+async function testImageModel() {
+  const { model, apiKey, baseURL, manufacturer } = settingData.value.imageModel;
+
+  // APIMart 和 RunningHub 不需要模型名称
+  if (!["apimart", "runninghub"].includes(manufacturer) && !model) {
+    message.warning("请先填写模型名称");
+    return;
+  }
+  if (!apiKey) {
+    message.warning("请先填写 API Key");
+    return;
+  }
+
+  testingImage.value = true;
+  message.info("正在生成测试图片，请耐心等待...");
+  try {
+    const res = await axios.post("/other/testImage", {
+      modelName: model || undefined,
+      apiKey: apiKey,
+      baseURL: baseURL || undefined,
+      manufacturer: manufacturer,
+    });
+    message.success("连接成功！图像模型配置正确");
+    // 显示生成的图片
+    if (res.data) {
+      testImageResult.value = res.data;
+      testImageModalVisible.value = true;
+    }
+  } catch (e: any) {
+    message.error(`连接失败: ${e.message}`);
+  } finally {
+    testingImage.value = false;
   }
 }
 
@@ -686,7 +750,7 @@ async function clearDatabase() {
   }
   try {
     await axios.post("/other/clearDatabase");
-    message.success("所有数据表已删除，3秒后自动退出，请重新打开");
+    message.success("所有数据表已删除，请重新打开页面");
   } catch {
     message.error("操作失败，请重试");
   }
@@ -1190,5 +1254,28 @@ async function clearDatabase() {
   color: var(--mainColor);
   width: fit-content;
   border: 1px solid rgba(153, 19, 250, 0.2);
+}
+
+/* 图像测试结果弹窗 */
+.test-image-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 8px;
+}
+
+.test-image-tip {
+  color: #22c55e;
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.test-image-preview {
+  max-width: 512px;
+  max-height: 512px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 </style>

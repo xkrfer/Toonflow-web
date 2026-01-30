@@ -11,6 +11,12 @@
         </div>
       </div>
       <div class="modelActions" @click.stop>
+        <!-- <a-tooltip :title="`测试视频 (${config.manufacturer === 'volcengine' ? '2秒' : '10秒'})`">
+          <button class="actionBtn" :class="{ loading: testLoading }" @click="onTestVideo" :disabled="testLoading">
+            <a-spin v-if="testLoading" size="small" />
+            <i-video theme="outline" size="16" fill="currentColor" v-else />
+          </button>
+        </a-tooltip> -->
         <a-tooltip title="编辑">
           <button class="actionBtn" @click="onEdit">
             <i-edit theme="outline" size="16" fill="currentColor" />
@@ -50,13 +56,21 @@
           <span class="infoLabel">创建时间</span>
           <span class="infoValue">{{ formatTime(config.createTime) }}</span>
         </div>
+        <div class="infoItem full" v-if="testResult">
+          <span class="infoLabel">测试结果</span>
+          <span class="infoValue" :class="testResult.success ? 'success' : 'error'">
+            {{ testResult.message }}
+          </span>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from "vue";
 import dayjs from "dayjs";
+import axios from "@/utils/axios";
 
 interface ConfigForm {
   id: number;
@@ -74,6 +88,9 @@ const props = defineProps<{
 }>();
 
 const emits = defineEmits(["edit", "delete"]);
+
+const testLoading = ref(false);
+const testResult = ref<{ success: boolean; message: string } | null>(null);
 
 const manufacturerMap: Record<string, string> = {
   runninghub: "RunningHub",
@@ -98,6 +115,36 @@ function onEdit() {
 
 function onDelete() {
   emits("delete", props.config);
+}
+
+async function onTestVideo() {
+  testLoading.value = true;
+  testResult.value = null;
+
+  // volcengine 2秒，其他 10秒
+  const duration = props.config.manufacturer === "volcengine" ? 2 : 10;
+
+  try {
+    const res: any = await axios.post("/other/testVideo", {
+      modelName: props.config.model,
+      apiKey: props.config.apiKey,
+      baseURL: props.config.baseUrl,
+      manufacturer: props.config.manufacturer,
+      duration,
+    });
+
+    testResult.value = {
+      success: true,
+      message: `测试成功: ${res.data || res.message || "视频生成完成"}`,
+    };
+  } catch (err: any) {
+    testResult.value = {
+      success: false,
+      message: `测试失败: ${err.message || err.error?.message || "未知错误"}`,
+    };
+  } finally {
+    testLoading.value = false;
+  }
 }
 </script>
 
@@ -243,5 +290,29 @@ function onDelete() {
   font-size: 12px;
   font-weight: 600;
   border-radius: 6px;
+}
+
+.infoItem.full {
+  grid-column: 1 / -1;
+}
+
+.infoValue.success {
+  color: #10b981;
+  font-weight: 500;
+}
+
+.infoValue.error {
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.actionBtn.loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.actionBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 </style>
