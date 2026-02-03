@@ -117,11 +117,24 @@
           <div v-else class="modelForm">
             <div class="formItem" v-if="key !== 'imageModel' || !['apimart', 'runninghub'].includes(settingData[key].manufacturer)">
               <label class="formLabel">模型名称</label>
-              <a-input v-model:value="settingData[key].model" :placeholder="`请输入${modelRecordName[key]}名称`" class="formInput" />
+              <a-auto-complete
+                v-if="key === 'languageModel'"
+                v-model:value="settingData[key].model"
+                :options="languageModelPresets"
+                :placeholder="`请选择或输入${modelRecordName[key]}名称`"
+                :filter-option="false"
+                class="formSelect"
+                :allow-clear="true"></a-auto-complete>
+              <a-input v-else v-model:value="settingData[key].model" :placeholder="`请输入${modelRecordName[key]}名称`" class="formInput" />
+              <span class="formHint" v-if="key === 'languageModel'">提示：可从列表选择预设模型，也可直接输入自定义模型名称</span>
             </div>
             <div class="formItem">
               <label class="formLabel">厂商</label>
-              <a-select v-model:value="settingData[key].manufacturer" placeholder="请选择厂商" class="formSelect" @change="handleChange(key)">
+              <a-select
+                v-model:value="settingData[key].manufacturer"
+                placeholder="请选择厂商"
+                class="formSelect"
+                @change="(data) => handleChange(data as string, key)">
                 <a-select-option v-for="item in getManufacturerList(key)" :key="item.value" :value="item.value">
                   {{ item.label }}
                 </a-select-option>
@@ -136,7 +149,9 @@
                 :class="{ 'input-error': key === 'languageModel' && baseURLError }"
                 @input="key === 'languageModel' && validateBaseURL()" />
               <span class="formError" v-if="key === 'languageModel' && baseURLError">{{ baseURLError }}</span>
-              <span class="formHint" v-else-if="key === 'languageModel'">提示：只需填写到 /v1/ 为止，例如 https://api.openai.com/v1/</span>
+              <span class="formHint" v-else-if="key === 'languageModel' || key == 'imageModel'">
+                提示：只需填写到 /v1/ 为止，例如 https://api.openai.com/v1/
+              </span>
             </div>
             <div class="formItem">
               <label class="formLabel">API Key</label>
@@ -153,7 +168,7 @@
             <div class="formItem" v-if="key === 'imageModel'">
               <a-button type="primary" :loading="testingImage" @click="testImageModel" class="testBtn">
                 <i-check-one v-if="!testingImage" theme="outline" size="14" fill="currentColor" />
-                {{ testingImage ? '正在生成测试图片...' : '检查图像生成是否可用' }}
+                {{ testingImage ? "正在生成测试图片..." : "检查图像生成是否可用" }}
               </a-button>
               <span class="formHint">提示：测试将生成一张“2D猫”图片，可能需要 30秒~2分钟，请耐心等待</span>
             </div>
@@ -307,25 +322,16 @@
   </a-modal>
 
   <!-- 图像测试结果预览弹窗 -->
-  <a-modal 
-    title="图像生成测试成功" 
-    v-model:open="testImageModalVisible" 
-    :footer="null"
-    centered
-    width="auto"
-    class="test-image-modal">
+  <a-modal title="图像生成测试成功" v-model:open="testImageModalVisible" :footer="null" centered width="auto" class="test-image-modal">
     <div class="test-image-content">
       <p class="test-image-tip">✅ 图像模型配置正确，以下是生成的测试图片：</p>
-      <a-image 
-        :src="testImageResult" 
-        :preview="{ src: testImageResult }"
-        class="test-image-preview" />
+      <a-image :src="testImageResult" :preview="{ src: testImageResult }" class="test-image-preview" />
     </div>
   </a-modal>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { message, Modal } from "ant-design-vue";
 import axios from "@/utils/axios";
@@ -411,7 +417,16 @@ function handleModalDelete(data: ConfigForm) {
   updateSetting();
 }
 
-function handleChange(key: ModelKey) {
+function handleChange(data: string, key: ModelKey) {
+  if (key == "languageModel") {
+    // 根据选择的厂商自动填充 baseUrl
+    const manufacturer = languageModelManufacturer.find((item) => item.value === data);
+    if (manufacturer && manufacturer.baseUrl) {
+      settingData.value.languageModel.baseURL = manufacturer.baseUrl;
+    } else settingData.value.languageModel.baseURL = "";
+    // 清空当前模型名称，让用户重新选择
+    settingData.value.languageModel.model = "";
+  }
   // 可扩展的厂商切换逻辑
 }
 
@@ -514,13 +529,87 @@ function getModelIconClass(key: ModelKey): string {
 const languageModelManufacturer = [
   { label: "OpenAI请求格式", value: "openAi" },
   // { label: "Gemini", value: "gemini" },
-  // { label: "DeepSeek", value: "deepseek" },
-  // { label: "火山引擎", value: "volcengine" },
+  { label: "DeepSeek", value: "deepseek", baseUrl: "https://api.deepseek.com/v1/" },
+  { label: "火山引擎", value: "volcengine", baseUrl: "https://ark.cn-beijing.volces.com/api/v3/" },
+  { label: "通义千问", value: "qwen", baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1/" },
+  { label: "智谱", value: "zhipu", baseUrl: "https://open.bigmodel.cn/api/paas/v4/" },
+  { label: "谷歌", value: "google" },
+  { label: "Anthropic", value: "anthropic" },
 ];
 
-// 图像生成模型厂商列表
+// 各厂商的模型预设
+const modelPresetsByManufacturer = {
+  openAi: [
+    // OpenAI
+    { label: "gpt-4o", value: "gpt-4o" },
+    { label: "gpt-4o-mini", value: "gpt-4o-mini" },
+    { label: "gpt-4.1", value: "gpt-4.1" },
+    { label: "gpt-5.1", value: "gpt-5.1" },
+    { label: "gpt-5.2", value: "gpt-5.2" },
+  ],
+  anthropic: [
+    { label: "claude-opus-4-5", value: "claude-opus-4-5" },
+    { label: "claude-haiku-4-5", value: "claude-haiku-4-5" },
+    { label: "claude-sonnet-4-5", value: "claude-sonnet-4-5" },
+    { label: "claude-opus-4-1", value: "claude-opus-4-1" },
+    { label: "claude-opus-4-0", value: "claude-opus-4-0" },
+    { label: "claude-sonnet-4-0", value: "claude-sonnet-4-0" },
+    { label: "claude-3-7-sonnet-latest", value: "claude-3-7-sonnet-latest" },
+    { label: "claude-3-5-haiku-latest", value: "claude-3-5-haiku-latest" },
+  ],
+  google: [
+    { label: "gemini-2.5-pro", value: "gemini-2.5-pro" },
+    { label: "gemini-2.5-flash", value: "gemini-2.5-flash" },
+    { label: "gemini-2.0-flash", value: "gemini-2.0-flash" },
+    { label: "gemini-2.0-flash-lite", value: "gemini-2.0-flash-lite" },
+    { label: "gemini-1.5-pro", value: "gemini-1.5-pro" },
+    { label: "gemini-1.5-flash", value: "gemini-1.5-flash" },
+  ],
+  zhipu: [
+    // 智谱
+    { label: "glm-4.7", value: "glm-4.7" },
+    { label: "glm-4.7-flashx", value: "glm-4.7-flashx" },
+    { label: "glm-4.6", value: "glm-4.6" },
+    { label: "glm-4.5-air", value: "glm-4.5-air" },
+    { label: "glm-4.5-airx", value: "glm-4.5-airx" },
+    { label: "glm-4-long", value: "glm-4-long" },
+    { label: "glm-4-flashx-250414", value: "glm-4-flashx-250414" },
+    { label: "glm-4.7-flash", value: "glm-4.7-flash" },
+    { label: "glm-4.5-flash", value: "glm-4.5-flash" },
+    { label: "glm-4-flash-250414", value: "glm-4-flash-250414" },
+    { label: "glm-4.6v", value: "glm-4.6v" },
+  ],
+  qwen: [
+    // 千问
+    { label: "qwen-vl-max", value: "qwen-vl-max" },
+    { label: "qwen-plus-latest", value: "qwen-plus-latest" },
+    { label: "qwen-max", value: "qwen-max" },
+    { label: "qwen2.5-72b-instruct", value: "qwen2.5-72b-instruct" },
+    { label: "qwen2.5-14b-instruct-1m", value: "qwen2.5-14b-instruct-1m" },
+    { label: "qwen2.5-vl-72b-instruct", value: "qwen2.5-vl-72b-instruct" },
+  ],
+  deepseek: [
+    { label: "deepseek-chat", value: "deepseek-chat" },
+    { label: "deepseek-reasoner", value: "deepseek-reasoner" },
+  ],
+  volcengine: [
+    // 豆包
+    { label: "doubao-seed-1-6-flash", value: "doubao-seed-1-6-flash" },
+    { label: "doubao-seed-1-6-lite", value: "doubao-seed-1-6-lite-251015" },
+    { label: "doubao-seed-1-6", value: "doubao-seed-1-6" },
+    { label: "doubao-seed-1-8", value: "doubao-seed-1-8" },
+  ],
+};
+
+// 语言模型预设选项 - 根据当前选择的厂商动态返回
+const languageModelPresets = computed(() => {
+  const manufacturer = settingData.value.languageModel.manufacturer || "openAi";
+  return modelPresetsByManufacturer[manufacturer as keyof typeof modelPresetsByManufacturer] || modelPresetsByManufacturer.openAi;
+});
+
+// 图像生成模型厂商列表ssssssssssssssssssssssssssssssssss
 const imageModelManufacturer = [
-  { label: "OpenAI", value: "openAi" },
+  { label: "OpenAI请求格式", value: "openAi" },
   { label: "火山引擎", value: "volcengine" },
   { label: "APIMart", value: "apimart" },
   { label: "RunningHub", value: "runninghub" },
@@ -569,7 +658,7 @@ const customFormat: ModelDataType = {
   model: "",
   apiKey: "",
   baseURL: "",
-  manufacturer: "",
+  manufacturer: "openAi",
 };
 
 const settingData = ref<SettingType>({
@@ -997,6 +1086,29 @@ async function clearDatabase() {
 }
 
 :deep(.ant-select-focused .ant-select-selector) {
+  border-color: var(--mainColor) !important;
+  background: #fff !important;
+  box-shadow: 0 0 0 3px rgba(152, 16, 250, 0.1) !important;
+}
+
+/* AutoComplete 样式 */
+:deep(.ant-select-auto-complete .ant-select-selector) {
+  height: 44px !important;
+  border-radius: 10px !important;
+  border: 1px solid #e5e7eb !important;
+  background: #f9fafb !important;
+  padding: 0 16px !important;
+}
+
+:deep(.ant-select-auto-complete .ant-select-selection-search-input) {
+  height: 42px !important;
+}
+
+:deep(.ant-select-auto-complete:hover .ant-select-selector) {
+  border-color: #d1d5db !important;
+}
+
+:deep(.ant-select-auto-complete.ant-select-focused .ant-select-selector) {
   border-color: var(--mainColor) !important;
   background: #fff !important;
   box-shadow: 0 0 0 3px rgba(152, 16, 250, 0.1) !important;
