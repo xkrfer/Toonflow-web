@@ -23,7 +23,7 @@
       <div class="modelBody" v-if="formData">
         <!-- 模式切换 -->
         <div class="modeSwitch">
-          <a-radio-group v-model:value="mode" button-style="solid" size="middle">
+          <a-radio-group v-model:value="mode" button-style="solid">
             <a-radio-button :value="1">
               <i-upload-one theme="outline" size="14" />
               <span>本地上传</span>
