@@ -17,6 +17,7 @@
             <a-select-option value="gemini">Gemini</a-select-option>
             <a-select-option value="other">其他</a-select-option>
           </a-select>
+          <a :href="website" target="_blank" rel="noopener noreferrer" style="font-size: 12px" v-if="website">点击获取厂商API</a>
         </a-form-item>
         <a-form-item label="类型">
           <a-select
@@ -61,6 +62,22 @@ import { ref, computed, watch } from "vue";
 import axios from "@/utils/axios";
 import { message } from "ant-design-vue";
 import type { SelectProps } from "ant-design-vue";
+const websites = ref<Record<string, string>>({
+  deepSeek: "https://platform.deepseek.com",
+  volcengine: "https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey",
+  kling: "https://app.klingai.com/cn/dev/api-key",
+  zhipu: "https://bigmodel.cn/usercenter/proj-mgmt/apikeys",
+  qwen: "https://bailian.console.aliyun.com/cn-beijing/?tab=model#/api-key",
+  wan: "https://bailian.console.aliyun.com/cn-beijing/?tab=model#/api-key",
+  openai: "",
+  vidu: "https://platform.vidu.cn/api-keys",
+  anthropic: "",
+  runninghub: "https://www.runninghub.cn/enterprise-api/consumerApi",
+  gemini: "https://ai.google.dev/gemini-api/docs/api-key?hl=zh-cn",
+});
+const website = computed(() => {
+  return websites.value[modelForm.value.manufacturer] || "";
+});
 
 // 厂商默认 BaseURL 配置
 const manufacturerDefaultBaseUrls: Record<string, Record<string, string>> = {
