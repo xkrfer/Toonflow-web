@@ -783,7 +783,8 @@ function sure() {
 <style lang="scss" scoped>
 .addModelContainer {
   width: 100%;
-  height: 100%;
+  height: 80vh;
+  overflow: auto;
 }
 
 .model-cards-container {
@@ -810,7 +811,6 @@ function sure() {
   cursor: pointer;
   transition: all 0.25s ease;
   background: #fff;
-  min-height: 150px;
   display: flex;
   flex-direction: column;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
@@ -822,11 +822,9 @@ function sure() {
   }
 
   .card-icon {
-    font-size: 36px;
+    font-size: 24px;
     color: #1890ff;
-    margin-bottom: 12px;
     transition: all 0.25s ease;
-
     &:deep(.anticon) {
       display: block;
     }
@@ -834,7 +832,6 @@ function sure() {
 
   &:hover .card-icon {
     color: #40a9ff;
-    transform: scale(1.08);
   }
 
   .card-header {
@@ -902,11 +899,9 @@ function sure() {
     border-color: #1890ff;
     background: #f5f9ff;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-    transform: translateY(-4px);
 
     .card-icon {
       color: #40a9ff;
-      transform: scale(1.08);
     }
 
     .card-header h3 {

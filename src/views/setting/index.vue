@@ -7,7 +7,7 @@
       </div>
       <div class="model-grid">
         <div v-for="(item, index) in modelData" :key="index" class="model-card-item">
-          <a-card hoverable class="model-config-card">
+          <a-card hoverable class="model-config-card" @click="startConfig(item)">
             <template #title>
               <div class="card-title-wrapper">
                 <div class="card-icon">
@@ -30,12 +30,6 @@
                 </div>
               </div>
             </div>
-            <template #actions>
-              <a-button type="primary" size="small" @click="startConfig(item)" class="config-btn">
-                <i-config theme="outline" size="14" fill="currentColor" />
-                配置模型
-              </a-button>
-            </template>
           </a-card>
         </div>
       </div>
@@ -580,7 +574,6 @@ function openLicense() {
           .card-content {
             .model-info {
               display: flex;
-              flex-direction: column;
               gap: 8px;
 
               .model-label {
