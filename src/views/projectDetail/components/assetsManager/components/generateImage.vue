@@ -108,7 +108,7 @@
                     class="resultItem"
                     :class="{ selected: selectedIndex === index, generating: item.state === '生成中' }"
                     @click="handleSelect(item, index)">
-                    <template v-if="item.state === '生成成功'">
+                    <template v-if="(item.state === '生成成功' || !item.state) && item.filePath">
                       <a-image :preview="false" :src="item.filePath" :fallback="errorPictrue" class="resultImg" />
                       <div class="resultOverlay">
                         <i-preview-open class="previewBtn" theme="outline" size="20" fill="#fff" @click.stop="previewImage(item.filePath)" />
@@ -324,6 +324,7 @@ async function generatePrompt() {
 async function startGenerate() {
   if (!formData.value) return;
   const { id, name, sampleImage, prompt } = formData.value;
+  console.log("%c Line:327 🍖 formData.value", "background:#33a5ff", formData.value);
   fakeLoading.value = true;
   generateLoading.value = true;
   try {
