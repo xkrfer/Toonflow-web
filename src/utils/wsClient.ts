@@ -9,6 +9,13 @@ type WsOptions = {
   onError?: (err: any) => void;
 };
 
+function getWsURL() {
+  if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL
+  const hostname = window.location.hostname
+  const protocol = window.location.protocol
+  return `${protocol}://api-${hostname}`
+}
+
 class WsClient {
   public ws: WebSocket | null = null;
   private url: string;
@@ -17,7 +24,7 @@ class WsClient {
   private retries = 0;
 
   constructor(url: string, options: WsOptions = {}) {
-    const fullUrl = new URL(url, import.meta.env.VITE_WS_URL);
+    const fullUrl = new URL(url, getWsURL());
     const token = localStorage.getItem("token");
     if (token) fullUrl.searchParams.set("token", token);
     this.url = fullUrl.toString();
