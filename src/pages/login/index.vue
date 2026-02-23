@@ -25,7 +25,7 @@
           <a-button class="loginBtn" type="primary" size="large" :loading="state.loginLoading" html-type="submit" block>登录</a-button>
         </a-form-item>
       </a-form>
-      <a-alert v-if="showHint" class="default-hint" type="info" closable @close="showHint = false">
+      <!-- <a-alert v-if="showHint" class="default-hint" type="info" closable @close="showHint = false">
         <template #message>
           <div class="hint-content">
             <p>
@@ -39,7 +39,7 @@
             <p>登录后可在设置中修改</p>
           </div>
         </template>
-      </a-alert>
+      </a-alert> -->
     </div>
   </div>
 </template>
