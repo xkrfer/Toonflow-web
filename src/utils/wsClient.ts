@@ -10,10 +10,9 @@ type WsOptions = {
 };
 
 function getWsURL() {
-  if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL
-  const hostname = window.location.hostname
-  const protocol = window.location.protocol
-  return `${protocol}://api-${hostname}`
+  if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL;
+  const hostname = window.location.hostname;
+  return `wss://api-${hostname}`;
 }
 
 class WsClient {

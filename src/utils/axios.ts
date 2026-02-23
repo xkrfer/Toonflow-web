@@ -1,13 +1,12 @@
 import axios from "axios";
 import router from "@/router/index";
 import { message } from "ant-design-vue";
-const baseURL = import.meta.env.VITE_BASE_URL;
 
 function getBaseURL() {
-  if (import.meta.env.VITE_BASE_URL) return import.meta.env.VITE_BASE_URL
-  const hostname = window.location.hostname
-  const protocol = window.location.protocol
-  return `${protocol}://api-${hostname}`
+  if (import.meta.env.VITE_BASE_URL) return import.meta.env.VITE_BASE_URL;
+  const hostname = window.location.hostname;
+  const protocol = window.location.protocol;
+  return `${protocol}//api-${hostname}`;
 }
 
 const instance = axios.create({
