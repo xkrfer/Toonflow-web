@@ -11,7 +11,6 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    AAlert: typeof import('ant-design-vue/es')['Alert']
     ABadge: typeof import('ant-design-vue/es')['Badge']
     AButton: typeof import('ant-design-vue/es')['Button']
     ACard: typeof import('ant-design-vue/es')['Card']
@@ -56,7 +55,6 @@ declare module 'vue' {
     Chat: typeof import('./../components/chat/index.vue')['default']
     ChatMessage: typeof import('./../components/chat/chatMessage.vue')['default']
     'ChatMessage copy': typeof import('./../components/chat/chatMessage copy.vue')['default']
-    copy: typeof import('./../components/chat/chatMessage copy.vue')['default']
     ElConfigProvider: typeof import('element-plus/es')['ElConfigProvider']
     ElDialog: typeof import('element-plus/es')['ElDialog']
     ElImage: typeof import('element-plus/es')['ElImage']
